@@ -71,22 +71,17 @@ def find(path, name):
     if len(parent_folders) <= 1:  # no slash in path
         return False
     elif len(parent_folders) >= 2:
-        find_recursive(path, name, [])
+        find_recursive(path, name, [], [])
 
 
-def find_recursive(path, name, parent_ids):
+def find_recursive(path, name, parent_ids, parent_names):
     run_query("SELECT * FROM File")
 
     parent_folders = path.split('/')
     print(len(parent_folders))
 
     if len(parent_folders) <= 1: # no slashes in path
-        response = run_query("SELECT name FROM File WHERE type = 'reg', name = '" + name
-                             + "', parent = " + parent_ids[len(parent_ids) - 1])
-
-        if len(response) > 0:
-            print(path + '/' + name)
-            return True
+        find_in_directory(name, parent_ids[len(parent_ids) - 1], "/" + "/".join(parent_names))
     elif len(parent_folders) == 2:
         response = run_query("SELECT ID FROM File WHERE type = 'dir', name = '" + parent_folders[1]
                              + "', parent = " + parent_ids[len(parent_ids) - 1])
@@ -106,6 +101,13 @@ def find_recursive(path, name, parent_ids):
             find_recursive(shortened_path, name, parent_ids + [response[0][0]])
             return
 
+def find_in_directory(name, parent_id, path):
+    response = run_query("SELECT name FROM File WHERE type = 'reg', name = '" + name
+                         + "', parent = " + parent_id)
+
+    if len(response) > 0:
+        print(path + '/' + name)
+        return True
 
 connection = mysql.connector.connect(**DB_CONNECTION)
 
