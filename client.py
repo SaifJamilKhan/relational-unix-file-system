@@ -60,6 +60,25 @@ def ls(l_flag=False):
         return '\n'.join(child.full_ls_format() for child in children)
     return '/t'.join(child.name for child in children)
 
+def pwd():
+    pwd_fileID = run_query('SELECT * FROM PWD')[0][0]
+    pwd_path = run_query('SELECT name FROM File WHERE ID=' + str(pwd_fileID))[0][0]
+    paths = get_parent_path(pwd_fileID)
+    return pwd_path if pwd_path=='/' else paths + '/' + str(pwd_path)
+
+def get_parent_path(pwd_fileID):
+    if(pwd_fileID == 0): #root folder
+        return ''
+    else:
+        pwd_parent_id = run_query('SELECT parent FROM File WHERE ID=' + str(pwd_fileID))[0][0]
+        pwd_parent_name = run_query('SELECT name from File WHERE ID=' + str(pwd_parent_id))[0][0]
+        
+        if(pwd_parent_name != '/'):
+            return get_parent_path(pwd_parent_id) + '/' + pwd_parent_name 
+        else:
+            return pwd_parent_name
+
+
 def cd(path):
     return ''
 
