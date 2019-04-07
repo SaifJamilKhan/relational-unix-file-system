@@ -98,6 +98,7 @@ def cd(destination):
                                + "', type = 'dir'")
         if len(find_child) == 0:
             print("Invalid Path")
+            return
         start_path_id = find_child[0][0]
     run_query("UPDATE PWD SET DIR_ID = '" + start_path_id + "'")
     return
