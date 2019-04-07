@@ -104,10 +104,77 @@ def cd(path):
 
     return ''
 
-def find(path, name):
-    run_query("SELECT * FROM File")
 
-    return ''
+def find(path, name):
+    parent_folders = path.split('/')
+
+    if len(parent_folders) <= 1:  # no slash in path
+        return False
+    elif len(parent_folders) >= 2:
+        if path.startswith("/"):
+            root_query = run_query("SELECT ID, name FROM File WHERE parent = NULL")
+            find_recursive(path, name, [root_query[0][0]], [root_query[0][1]])
+        elif path.startswith("../"):
+            pwd_file_id = find_root_id()
+            pwd_file_name = ""
+
+            while path.startswith("../"):
+                parent_query = run_query('SELECT parent FROM File WHERE ID=' + pwd_file_id)
+                if len(parent_query) == 0:
+                    print("Invalid Path")
+                    return
+
+                pwd_file_id = parent_query[0][0]
+                pwd_file_name = parent_query[0][1]
+                path = path[3:]
+
+            find_recursive("/" + path, name, [pwd_file_id], [pwd_file_name])
+
+
+def find_recursive(path, name, parent_ids, parent_names):
+    parent_folders = path.split('/')
+
+    if len(parent_folders) <= 1: # no slashes in path
+        find_in_directory(name, parent_ids[len(parent_ids) - 1], "/" + "/".join(parent_names))
+    elif len(parent_folders) == 2:
+        response = run_query("SELECT ID FROM File WHERE type = 'dir', name = '" + parent_folders[1]
+                             + "', parent = " + parent_ids[len(parent_ids) - 1])
+
+        if len(response) > 0:
+            find_recursive("", name, parent_folders + [response[0][0]])
+            return True
+
+    else:
+        response = run_query("SELECT ID, name FROM File WHERE type = 'dir', name = '" + parent_folders[0]
+                             + "', parent = " + parent_ids[len(parent_ids) - 1])
+
+        if len(response) == 0:
+            return False
+        else:
+            shortened_path = "/".join(parent_folders.slice(1, len(parent_folders), 1))  # remove top folder
+            find_recursive(shortened_path, name, parent_ids + [response[0][0]])
+            return
+
+
+def find_in_directory(name, parent_id, path):
+    file_search = run_query("SELECT name FROM File WHERE type = 'reg', name = '" + name
+                         + "', parent = " + parent_id)
+
+    if len(file_search) > 0:
+        print(path + '/' + name)
+
+    folder_search = run_query("SELECT ID, name FROM File WHERE type = 'dir', parent = " + parent_id)
+
+    if len(folder_search) > 0:
+        for i in range(len(folder_search)):
+            folder_id = folder_search[i][0]
+            folder_name = folder_search[i][1]
+            find_in_directory(name, folder_id, path + '/' + folder_name)
+
+
+def find_root_id():
+    root_query = run_query('SELECT ID, name FROM PWD')
+    return root_query[0][0]
 
 
 connection = mysql.connector.connect(**DB_CONNECTION)
@@ -120,6 +187,6 @@ try:
     print(ls(True))
     # print(cd('home/bob/../root'))
     print(ls(True))
-    print(find('..', 'bash'))
+    print(find('/file/hello', 'bash'))
 finally:
     connection.close()
