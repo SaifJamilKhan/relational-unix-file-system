@@ -85,19 +85,27 @@ def cd(path):
 def find(path, name):
     parent_folders = path.split('/')
 
-    print("first is " + parent_folders[0])
-    print("second is " + parent_folders[1])
     if len(parent_folders) <= 1:  # no slash in path
         return False
     elif len(parent_folders) >= 2:
-        find_recursive(path, name, [], [])
+        if path.startswith("/"):
+            root_query = run_query("SELECT ID, name FROM File WHERE parent = NULL")
+            find_recursive(path, name, [root_query[0][0]], [root_query[0][1]])
+        elif path.startswith("../"):
+            root_query = run_query('SELECT ID, name FROM PWD')
+            pwd_file_id = root_query[0][0]
+            pwd_file_name = root_query[0][1]
 
+            while path.startswith("../"):
+                parent_query = run_query('SELECT parent FROM File WHERE ID=' + pwd_file_id)
+                pwd_file_id = parent_query[0][0]
+                pwd_file_name = parent_query[0][1]
+                path = path[3:]
+
+            find_recursive(path, name, [pwd_file_id], [pwd_file_name])
 
 def find_recursive(path, name, parent_ids, parent_names):
-    run_query("SELECT * FROM File")
-
     parent_folders = path.split('/')
-    print(len(parent_folders))
 
     if len(parent_folders) <= 1: # no slashes in path
         find_in_directory(name, parent_ids[len(parent_ids) - 1], "/" + "/".join(parent_names))
@@ -121,12 +129,19 @@ def find_recursive(path, name, parent_ids, parent_names):
             return
 
 def find_in_directory(name, parent_id, path):
-    response = run_query("SELECT name FROM File WHERE type = 'reg', name = '" + name
+    file_search = run_query("SELECT name FROM File WHERE type = 'reg', name = '" + name
                          + "', parent = " + parent_id)
 
-    if len(response) > 0:
+    if len(file_search) > 0:
         print(path + '/' + name)
-        return True
+
+    folder_search = run_query("SELECT ID, name FROM File WHERE type = 'dir', parent = " + parent_id)
+
+    if len(folder_search) > 0:
+        for i in range(len(folder_search)):
+            folder_id = folder_search[i][0]
+            folder_name = folder_search[i][1]
+            find_in_directory(name, folder_id, path + '/' + folder_name)
 
 connection = mysql.connector.connect(**DB_CONNECTION)
 
