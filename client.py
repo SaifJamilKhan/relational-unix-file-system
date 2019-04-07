@@ -79,37 +79,28 @@ def get_parent_path(pwd_fileID):
             return pwd_parent_name
 
 
-def cd(path):
+def cd(destination):
+    global start_path_id
 
-    names = path.split('/')
-    names = names[1:] # If the path begins with a slash, the first child is an empty string
-    #/path/to/object
+    if destination.startswith("../"):
+        destination, _, start_path_id = trim_start_path(destination)
+    elif destination.startswith("/"):
+        start_path_id = find_current_dir_id()
+    else:
+        print("Invalid Path")
+        return
 
-    root_id = find_root_id()
+    names = destination.split('/')
+    names = names[1:]  # If the path begins with a slash, the first child is an empty string
 
     for i in range(len(names)):
-        find_child = run_query("SELECT ID, name from File WHERE parent = '" + root_id + "', name = '" + names[i] + "', type = 'dir'")
+        find_child = run_query("SELECT ID, name from File WHERE parent = '" + start_path_id + "', name = '" + names[i]
+                               + "', type = 'dir'")
         if len(find_child) == 0:
             print("Invalid Path")
-        root_id = find_child[0][0]
-    run_query("UPDATE PWD SET DIR_ID = '" + root_id + "'")
-
-
-        # print("name: ", names[i])
-        # ID = run_query("SELECT ID FROM File WHERE name='" + name[i] + "'")[0][0]
-        # if i is len(names) - 1:
-            
-        # else:
-        #     child_id = run_query("SELECT ID FROM File WHERE name='" + name[i+1] + "'")[0][0]
-        #     print("child_id: ", child_id)
-        #     children = run_query('SELECT * FROM File WHERE parent =' + str(ID))
-        #     children = [File(child) for child in children]
-        #     for child in children:
-        #         if child.ID == child_id:
-        #             print('child ID ' + child.ID + ' found')
-        #             break # child in path does exist
-
-    return ''
+        start_path_id = find_child[0][0]
+    run_query("UPDATE PWD SET DIR_ID = '" + start_path_id + "'")
+    return
 
 
 def find(path, name):
@@ -122,23 +113,24 @@ def find(path, name):
             root_query = run_query("SELECT ID, name FROM File WHERE parent = NULL")
             find_recursive(path, name, [root_query[0][0]], [root_query[0][1]])
         elif path.startswith("../"):
-            start_path = trim_start_path()
+            start_path, start_path_id, start_path_name = trim_start_path(path)
 
-            find_recursive("/" + path, name, [pwd_file_id], [pwd_file_name])
+            find_recursive("/" + start_path, name, [start_path_id], [start_path_name])
+
 
 def trim_start_path(path):
     pwd_file_id, pwd_name = find_current_dir_id()
-    pwd_file_name = ""
 
     while path.startswith("../"):
-        parent_query = run_query('SELECT parent FROM File WHERE ID=' + pwd_file_id)
+        parent_query = run_query("SELECT parent, FROM File WHERE ID='" + pwd_file_id + "'")
         if len(parent_query) == 0:
             print("Invalid Path")
             return
 
         pwd_file_id = parent_query[0][0]
-        pwd_file_name = parent_query[0][1]
         path = path[3:]
+    parent_name_query = run_query("SELECT name FROM File WHERE ID='" + pwd_file_id + "'")
+    return path, pwd_file_id, parent_name_query[0][0]
 
 
 def find_recursive(path, name, parent_ids, parent_names):
