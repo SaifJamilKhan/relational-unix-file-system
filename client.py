@@ -8,9 +8,9 @@ from datetime import datetime
 
 DB_CONNECTION = {
     'host': 'localhost',
-    'database': 'my_db',
+    'database': 'unixfilesystem',
     'user':	 'root',
-    'password': 'password'
+    'password': 'pass'
 }
 
 
@@ -80,6 +80,28 @@ def get_parent_path(pwd_fileID):
 
 
 def cd(path):
+    names = path.split('/')
+    global_children = []
+    for i in range(len(names)):
+        print("name: ", names[i])
+        ID = run_query("SELECT ID FROM File WHERE name='" + name[i] + "'")[0][0]
+        if i is len(names) - 1:
+            
+        else:
+            child_id = run_query("SELECT ID FROM File WHERE name='" + name[i+1] + "'")[0][0]
+            print("child_id: ", child_id)
+            children = run_query('SELECT * FROM File WHERE parent =' + str(ID))
+            children = [File(child) for child in children]
+            for child in children:
+                if child.ID == child_id:
+                    print('child ID ' + child.ID + ' found')
+                    break # child in path does exist
+
+
+        
+        
+        
+
     return ''
 
 def find(path, name):
@@ -93,8 +115,10 @@ connection = mysql.connector.connect(**DB_CONNECTION)
 
 # Testing code (need to impliment a loop asking for user input)
 try:
+    path = 'home/root/.bashrc'
+    print("cd: ", cd(path))
     print(ls(True))
-    print(cd('home/bob/../root'))
+    # print(cd('home/bob/../root'))
     print(ls(True))
     print(find('..', 'bash'))
 finally:
