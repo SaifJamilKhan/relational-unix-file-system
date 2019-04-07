@@ -174,15 +174,9 @@ def find_in_directory(name, parent_id, path):
             find_in_directory(name, folder_id, path + '/' + folder_name)
 
 
-def find_root_id():
-    root_query = run_query('SELECT DIR_ID, name FROM PWD')
-    return root_query[0][0]
-
-
 def find_current_dir_id():
     root_query = run_query('SELECT DIR_ID FROM PWD')
     return root_query[0][0]
-
 
 
 connection = mysql.connector.connect(**DB_CONNECTION)
